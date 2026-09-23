@@ -236,44 +236,114 @@ export default function App() {
     if (window.electronAPI?.addItem) {
       window.electronAPI.addItem(payload);
     } else {
-      // Browser Web Edition
+      // ─── Browser Web Edition ───
       const newItemId = `TRK-${Math.floor(10000 + Math.random() * 90000)}`;
+
+      // Extract YouTube video ID if applicable
+      const ytMatch = url.match(/(?:v=|\/|youtu\.be\/)([0-9A-Za-z_-]{11})/);
+      const ytVideoId = ytMatch ? ytMatch[1] : null;
+
+      // Extract Instagram shortcode
+      const igMatch = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/);
+      const igShortcode = igMatch ? igMatch[1] : null;
+
+      // Generate platform-specific thumbnail immediately (no API call)
+      let immediateThumbnail = null;
+      if (ytVideoId) {
+        immediateThumbnail = `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`;
+      }
+
       const newItem = {
         id: newItemId,
         ...payload,
-        title: `${detectedPlatform.toUpperCase()}: ${url.slice(0, 48)}...`,
-        thumbnail: null,
-        durationSec: 180,
-        durationText: '03:00',
-        status: 'queued',
+        title: ytVideoId 
+          ? `YouTube Video (${ytVideoId})` 
+          : igShortcode 
+            ? `Instagram Post (${igShortcode})`
+            : `${(detectedPlatform || 'media').toUpperCase()} — ${url.split('/').filter(Boolean).pop() || 'Media'}`,
+        thumbnail: immediateThumbnail,
+        durationSec: 0,
+        durationText: '--:--',
+        uploader: '',
+        tags: [],
+        description: '',
+        status: 'fetching-metadata',
         progress: 0,
         downloadedSize: '0 MB',
         totalSize: 'Calculating',
         speed: '',
-        eta: 'Ready to download',
+        eta: 'Fetching metadata…',
       };
       setQueue((prev) => [newItem, ...prev]);
 
-      // In browser mode, fetch live title, author & thumbnail via oEmbed
-      fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data && data.title) {
-            setQueue((prev) =>
-              prev.map((item) =>
-                item.id === newItemId
-                  ? {
-                      ...item,
-                      title: data.title,
-                      uploader: data.author_name || item.uploader,
-                      thumbnail: data.thumbnail_url || item.thumbnail,
-                    }
-                  : item
-              )
-            );
+      // ─── Async metadata enrichment ───
+      const updateItem = (patch) => {
+        setQueue((prev) =>
+          prev.map((item) =>
+            item.id === newItemId ? { ...item, ...patch } : item
+          )
+        );
+      };
+
+      const finishWithDefaults = () => {
+        updateItem({ 
+          status: 'queued', 
+          eta: 'Ready to download',
+          durationText: newItem.durationText === '--:--' ? '—' : undefined,
+        });
+      };
+
+      // Strategy: use noembed (CORS-friendly proxy) → fallback to YouTube oEmbed via allorigins → fallback to direct thumbnail
+      const tryNoembed = () =>
+        fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(6000) })
+          .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+
+      const tryAllOrigins = () =>
+        fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`)}`, { signal: AbortSignal.timeout(6000) })
+          .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+
+      const enrichFromOembed = (data) => {
+        if (!data || data.error) return false;
+        const patch = { status: 'queued', eta: 'Ready to download' };
+        if (data.title) patch.title = data.title;
+        if (data.author_name) patch.uploader = data.author_name;
+        if (data.thumbnail_url) {
+          // Upgrade YouTube thumbnail to maxresdefault if possible
+          let thumb = data.thumbnail_url;
+          if (ytVideoId && thumb.includes('hqdefault')) {
+            thumb = `https://i.ytimg.com/vi/${ytVideoId}/maxresdefault.jpg`;
           }
+          patch.thumbnail = thumb;
+        }
+        updateItem(patch);
+        return true;
+      };
+
+      // Try noembed first, then allorigins, then give up gracefully
+      tryNoembed()
+        .then((data) => {
+          if (!enrichFromOembed(data)) throw new Error('empty');
         })
-        .catch(() => {});
+        .catch(() => {
+          // Fallback: allorigins proxy (works for YouTube)
+          if (ytVideoId || url.includes('youtube') || url.includes('youtu.be')) {
+            return tryAllOrigins()
+              .then((data) => {
+                if (!enrichFromOembed(data)) throw new Error('empty');
+              })
+              .catch(() => {
+                // Last resort: use direct YouTube thumbnail (already set)
+                updateItem({
+                  status: 'queued',
+                  eta: 'Ready to download',
+                  thumbnail: ytVideoId ? `https://i.ytimg.com/vi/${ytVideoId}/maxresdefault.jpg` : null,
+                  title: ytVideoId ? `YouTube Video (${ytVideoId})` : newItem.title,
+                });
+              });
+          } else {
+            finishWithDefaults();
+          }
+        });
     }
   };
 

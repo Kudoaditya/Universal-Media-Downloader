@@ -9,7 +9,8 @@ import {
   Globe,
   Image as ImageIcon,
   FileText,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { YoutubeIcon, InstagramIcon, PinterestIcon, TikTokIcon } from './icons';
 import InspectorPanel from './InspectorPanel';
@@ -167,6 +168,11 @@ export default function QueueItem({
               {item.status === 'queued' && (
                 <span className="font-mono text-[11px] text-primary bg-primary/10 px-space-xs py-[1px] rounded border border-primary/20">
                   Queued
+                </span>
+              )}
+              {item.status === 'fetching-metadata' && (
+                <span className="font-mono text-[11px] text-amber-400 bg-amber-400/10 px-space-xs py-[1px] rounded border border-amber-400/20 flex items-center gap-1 animate-pulse">
+                  <RefreshCw className="w-3 h-3 animate-spin" /> Fetching…
                 </span>
               )}
 
