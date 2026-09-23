@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production Builds
+dist/
+dist_electron/
+build/mac
+build/mac-arm64
+build/win
+
+# Environment & Credentials
+.env
+.env.local
+.env.*.local
+*.pem
+instagram_cookies.txt
+
+# Binary caches & AppData
+binaries/
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project

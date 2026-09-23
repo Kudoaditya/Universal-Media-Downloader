@@ -1,0 +1,65 @@
+appId: com.universal.mediadownloader
+productName: Universal Media Downloader
+copyright: Copyright © 2026 Universal Media Downloader
+
+directories:
+  output: dist_electron
+  buildResources: build
+
+files:
+  - "dist/**/*"
+  - "electron/**/*"
+  - "assets/**/*"
+  - "package.json"
+
+mac:
+  category: public.app-category.utilities
+  icon: assets/icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+
+dmg:
+  title: "${productName} ${version}"
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+win:
+  icon: assets/icon.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Universal Media Downloader
+
+publish:
+  provider: github
+  owner: vgskills
+  repo: Universal-Media-Downloader
+  releaseType: release

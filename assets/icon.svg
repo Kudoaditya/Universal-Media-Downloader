@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1e24" />
+      <stop offset="100%" stop-color="#0e0e12" />
+    </linearGradient>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#27272a" stop-opacity="0.3" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- App Icon Base Squircle -->
+  <rect x="24" y="24" width="464" height="464" rx="108" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="4"/>
+
+  <!-- Inner subtle ambient glow behind the mark -->
+  <circle cx="256" cy="256" r="130" fill="#3b82f6" opacity="0.12" filter="url(#glow)"/>
+
+  <!-- Geometric Symbol: Media Play Triangle merged into Downward Ingestion Arrow -->
+  <!-- Outer concentric stream rings (Media waves/layers) -->
+  <path d="M 170 160 C 170 160, 256 120, 342 160" fill="none" stroke="#3b82f6" stroke-width="12" stroke-linecap="round" opacity="0.4"/>
+  <path d="M 140 200 C 140 200, 256 150, 372 200" fill="none" stroke="#60a5fa" stroke-width="14" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Central Download Arrow & Media Node -->
+  <!-- Main dynamic downward arrow core -->
+  <path d="M 256 180 L 256 340 M 190 274 L 256 340 L 322 274" fill="none" stroke="url(#primaryGrad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Media Play accent pill/badge on the right -->
+  <path d="M 228 392 L 284 392" stroke="#60a5fa" stroke-width="16" stroke-linecap="round"/>
+</svg>
