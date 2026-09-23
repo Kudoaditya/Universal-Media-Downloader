@@ -3,7 +3,7 @@
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Release](https://img.shields.io/badge/Release-v2.4.0-emerald.svg)](https://github.com/vgskills/Universal-Media-Downloader/releases)
+[![Release](https://img.shields.io/badge/Release-v2.4.0-emerald.svg)](https://github.com/Kudoaditya/Universal-Media-Downloader/releases)
 [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Web-purple.svg)](#-downloads--installers)
 [![Electron](https://img.shields.io/badge/Electron-33.2.1-47848F.svg?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
@@ -12,7 +12,7 @@
 **The ultimate high-speed batch media downloader & creative utility.**  
 Effortlessly download videos, playlists, audio tracks, and multi-slide carousels from **YouTube**, **Instagram**, **Pinterest**, and **TikTok** with 16-connection multi-stream acceleration and zero terminal jargon.
 
-[**🌐 Open Live Web App**](https://vgskills.github.io/Universal-Media-Downloader/) • [**🍏 Download for macOS**](#-macos-installation) • [**🪟 Download for Windows**](#-windows-installation) • [**📖 Documentation**](#-key-features)
+[**🌐 Open Live Web App**](https://Kudoaditya.github.io/Universal-Media-Downloader/) • [**🍏 Download for macOS**](#-macos-installation) • [**🪟 Download for Windows**](#-windows-installation) • [**📖 Documentation**](#-key-features)
 
 </div>
 
@@ -24,12 +24,12 @@ Choose the appropriate installer for your operating system:
 
 | Platform | Architecture | Installer Type | Direct Download Link |
 | :--- | :--- | :--- | :--- |
-| **macOS** | Apple Silicon (M1 / M2 / M3 / M4) | `.dmg` Installer | [⬇️ **Download for Mac (Apple Silicon .dmg)**](https://github.com/vgskills/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-arm64.dmg) |
-| **macOS** | Intel x64 | `.dmg` Installer | [⬇️ **Download for Mac (Intel .dmg)**](https://github.com/vgskills/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-x64.dmg) |
-| **macOS** | Universal Portable | `.zip` Archive | [⬇️ **Download Portable Mac (.zip)**](https://github.com/vgskills/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-mac.zip) |
-| **Windows** | 64-bit (x64) | `.exe` Setup Installer | [⬇️ **Download for Windows (.exe Installer)**](https://github.com/vgskills/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-Setup.exe) |
-| **Windows** | 64-bit (x64) | Standalone Portable | [⬇️ **Download Portable Windows (.exe)**](https://github.com/vgskills/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-Portable.exe) |
-| **Web Browser** | Any Device | Web Application | [🌐 **Launch Web App Online**](https://vgskills.github.io/Universal-Media-Downloader/) |
+| **macOS** | Apple Silicon (M1 / M2 / M3 / M4) | `.dmg` Installer | [⬇️ **Download for Mac (Apple Silicon .dmg)**](https://github.com/Kudoaditya/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-arm64.dmg) |
+| **macOS** | Intel x64 | `.dmg` Installer | [⬇️ **Download for Mac (Intel .dmg)**](https://github.com/Kudoaditya/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-x64.dmg) |
+| **macOS** | Universal Portable | `.zip` Archive | [⬇️ **Download Portable Mac (.zip)**](https://github.com/Kudoaditya/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-mac.zip) |
+| **Windows** | 64-bit (x64) | `.exe` Setup Installer | [⬇️ **Download for Windows (.exe Installer)**](https://github.com/Kudoaditya/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-Setup.exe) |
+| **Windows** | 64-bit (x64) | Standalone Portable | [⬇️ **Download Portable Windows (.exe)**](https://github.com/Kudoaditya/Universal-Media-Downloader/releases/latest/download/Universal-Media-Downloader-Portable.exe) |
+| **Web Browser** | Any Device | Web Application | [🌐 **Launch Web App Online**](https://Kudoaditya.github.io/Universal-Media-Downloader/) |
 
 ---
 
@@ -70,7 +70,7 @@ Choose the appropriate installer for your operating system:
 ## 🌐 Web Version (Any Browser / Device)
 
 You can access and use the user interface directly in your browser without installing anything:
-👉 **[https://vgskills.github.io/Universal-Media-Downloader/](https://vgskills.github.io/Universal-Media-Downloader/)**
+👉 **[https://Kudoaditya.github.io/Universal-Media-Downloader/](https://Kudoaditya.github.io/Universal-Media-Downloader/)**
 
 - Paste and queue links from any device (phone, tablet, PC, Mac).
 - Preview video information, thumbnails, tags, and carousel albums.
@@ -143,7 +143,7 @@ You can access and use the user interface directly in your browser without insta
 ### Installation & Run
 ```bash
 # Clone the repository
-git clone https://github.com/vgskills/Universal-Media-Downloader.git
+git clone https://github.com/Kudoaditya/Universal-Media-Downloader.git
 cd Universal-Media-Downloader
 
 # Install dependencies

@@ -60,6 +60,6 @@ nsis:
 
 publish:
   provider: github
-  owner: vgskills
+  owner: Kudoaditya
   repo: Universal-Media-Downloader
   releaseType: release
