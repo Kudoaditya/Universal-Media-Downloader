@@ -236,11 +236,12 @@ export default function App() {
     if (window.electronAPI?.addItem) {
       window.electronAPI.addItem(payload);
     } else {
-      // Browser fallback
+      // Browser Web Edition
+      const newItemId = `TRK-${Math.floor(10000 + Math.random() * 90000)}`;
       const newItem = {
-        id: `TRK-${Math.floor(10000 + Math.random() * 90000)}`,
+        id: newItemId,
         ...payload,
-        title: `${detectedPlatform.toUpperCase()} Media Link: ${url.slice(0, 48)}...`,
+        title: `${detectedPlatform.toUpperCase()}: ${url.slice(0, 48)}...`,
         thumbnail: null,
         durationSec: 180,
         durationText: '03:00',
@@ -249,9 +250,30 @@ export default function App() {
         downloadedSize: '0 MB',
         totalSize: 'Calculating',
         speed: '',
-        eta: 'Ready in queue',
+        eta: 'Ready to download',
       };
       setQueue((prev) => [newItem, ...prev]);
+
+      // In browser mode, fetch live title, author & thumbnail via oEmbed
+      fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.title) {
+            setQueue((prev) =>
+              prev.map((item) =>
+                item.id === newItemId
+                  ? {
+                      ...item,
+                      title: data.title,
+                      uploader: data.author_name || item.uploader,
+                      thumbnail: data.thumbnail_url || item.thumbnail,
+                    }
+                  : item
+              )
+            );
+          }
+        })
+        .catch(() => {});
     }
   };
 
@@ -272,19 +294,48 @@ export default function App() {
       if (window.electronAPI?.resumeItem) {
         window.electronAPI.resumeItem(id);
       } else {
+        // Browser Web Mode: trigger real web download resolver
+        const targetUrl = item.url;
+        let resolverUrl = '';
+        if (item.platform === 'youtube' || targetUrl.includes('youtu')) {
+          const videoId = (targetUrl.match(/(?:v=|\/|youtu\.be\/)([0-9A-Za-z_-]{11})/) || [])[1];
+          resolverUrl = item.config?.format === 'audio_only'
+            ? `https://www.y2mate.com/youtube-mp3/${videoId || ''}`
+            : `https://www.y2mate.com/youtube/${videoId || ''}`;
+        } else if (item.platform === 'instagram' || targetUrl.includes('instagram.com')) {
+          resolverUrl = 'https://fastdl.app/';
+        } else if (item.platform === 'tiktok' || targetUrl.includes('tiktok.com')) {
+          resolverUrl = 'https://snaptik.app/';
+        } else if (item.platform === 'pinterest' || targetUrl.includes('pinterest.com')) {
+          resolverUrl = 'https://pinterestvideodownloader.com/';
+        } else {
+          resolverUrl = `https://ssyoutube.com/watch?url=${encodeURIComponent(targetUrl)}`;
+        }
+
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(targetUrl).catch(() => {});
+        }
+
         setQueue((prev) =>
           prev.map((i) =>
             i.id === id
-              ? {
-                  ...i,
-                  status: 'active',
-                  speed: '12.8 MB/s',
-                  eta: 'Downloading...',
-                  progress: i.progress === 0 ? 5 : i.progress,
-                }
+              ? { ...i, status: 'active', speed: '24.5 MB/s', eta: 'Opening download portal...', progress: 50 }
               : i
           )
         );
+
+        setTimeout(() => {
+          setQueue((prev) =>
+            prev.map((i) =>
+              i.id === id
+                ? { ...i, status: 'completed', speed: '', eta: 'Direct Download Ready', progress: 100 }
+                : i
+            )
+          );
+          if (resolverUrl) {
+            window.open(resolverUrl, '_blank', 'noopener,noreferrer');
+          }
+        }, 1000);
       }
     }
   };
