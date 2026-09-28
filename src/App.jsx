@@ -130,17 +130,12 @@ export default function App() {
       'aria2c': { ready: true, path: '~/binaries/aria2c', error: null, progress: 100 },
     }
   });
-  const [instagramStatus, setInstagramStatus] = useState({ connected: false, username: null });
 
   // Sync with native Electron backend if running inside Electron
   useEffect(() => {
     if (window.electronAPI) {
       window.electronAPI.getBinariesStatus?.().then((status) => {
         if (status) setBinaryStatus(status);
-      });
-
-      window.electronAPI.getInstagramStatus?.().then((status) => {
-        if (status) setInstagramStatus(status);
       });
 
       window.electronAPI.getDefaultDownloadDirectory?.().then((dir) => {
@@ -177,20 +172,10 @@ export default function App() {
         );
       });
 
-      const cleanupIgStatus = window.electronAPI.onInstagramStatusChanged?.((status) => {
-        if (status) {
-          setInstagramStatus(status);
-          window.electronAPI.getQueueItems?.().then((items) => {
-            if (items) setQueue(items);
-          });
-        }
-      });
-
       return () => {
         if (cleanupStatus) cleanupStatus();
         if (cleanupQueue) cleanupQueue();
         if (cleanupProgress) cleanupProgress();
-        if (cleanupIgStatus) cleanupIgStatus();
       };
     }
   }, []);
@@ -202,10 +187,6 @@ export default function App() {
       if (selected) {
         setDownloadDir(selected);
       }
-    } else {
-      // Browser fallback simulation
-      const mock = prompt('Enter destination directory path:', downloadDir);
-      if (mock) setDownloadDir(mock);
     }
   };
 
@@ -235,115 +216,6 @@ export default function App() {
 
     if (window.electronAPI?.addItem) {
       window.electronAPI.addItem(payload);
-    } else {
-      // ─── Browser Web Edition ───
-      const newItemId = `TRK-${Math.floor(10000 + Math.random() * 90000)}`;
-
-      // Extract YouTube video ID if applicable
-      const ytMatch = url.match(/(?:v=|\/|youtu\.be\/)([0-9A-Za-z_-]{11})/);
-      const ytVideoId = ytMatch ? ytMatch[1] : null;
-
-      // Extract Instagram shortcode
-      const igMatch = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/);
-      const igShortcode = igMatch ? igMatch[1] : null;
-
-      // Generate platform-specific thumbnail immediately (no API call)
-      let immediateThumbnail = null;
-      if (ytVideoId) {
-        immediateThumbnail = `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`;
-      }
-
-      const newItem = {
-        id: newItemId,
-        ...payload,
-        title: ytVideoId 
-          ? `YouTube Video (${ytVideoId})` 
-          : igShortcode 
-            ? `Instagram Post (${igShortcode})`
-            : `${(detectedPlatform || 'media').toUpperCase()} — ${url.split('/').filter(Boolean).pop() || 'Media'}`,
-        thumbnail: immediateThumbnail,
-        durationSec: 0,
-        durationText: '--:--',
-        uploader: '',
-        tags: [],
-        description: '',
-        status: 'fetching-metadata',
-        progress: 0,
-        downloadedSize: '0 MB',
-        totalSize: 'Calculating',
-        speed: '',
-        eta: 'Fetching metadata…',
-      };
-      setQueue((prev) => [newItem, ...prev]);
-
-      // ─── Async metadata enrichment ───
-      const updateItem = (patch) => {
-        setQueue((prev) =>
-          prev.map((item) =>
-            item.id === newItemId ? { ...item, ...patch } : item
-          )
-        );
-      };
-
-      const finishWithDefaults = () => {
-        updateItem({ 
-          status: 'queued', 
-          eta: 'Ready to download',
-          durationText: newItem.durationText === '--:--' ? '—' : undefined,
-        });
-      };
-
-      // Strategy: use noembed (CORS-friendly proxy) → fallback to YouTube oEmbed via allorigins → fallback to direct thumbnail
-      const tryNoembed = () =>
-        fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(6000) })
-          .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
-
-      const tryAllOrigins = () =>
-        fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`)}`, { signal: AbortSignal.timeout(6000) })
-          .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
-
-      const enrichFromOembed = (data) => {
-        if (!data || data.error) return false;
-        const patch = { status: 'queued', eta: 'Ready to download' };
-        if (data.title) patch.title = data.title;
-        if (data.author_name) patch.uploader = data.author_name;
-        if (data.thumbnail_url) {
-          // Upgrade YouTube thumbnail to maxresdefault if possible
-          let thumb = data.thumbnail_url;
-          if (ytVideoId && thumb.includes('hqdefault')) {
-            thumb = `https://i.ytimg.com/vi/${ytVideoId}/maxresdefault.jpg`;
-          }
-          patch.thumbnail = thumb;
-        }
-        updateItem(patch);
-        return true;
-      };
-
-      // Try noembed first, then allorigins, then give up gracefully
-      tryNoembed()
-        .then((data) => {
-          if (!enrichFromOembed(data)) throw new Error('empty');
-        })
-        .catch(() => {
-          // Fallback: allorigins proxy (works for YouTube)
-          if (ytVideoId || url.includes('youtube') || url.includes('youtu.be')) {
-            return tryAllOrigins()
-              .then((data) => {
-                if (!enrichFromOembed(data)) throw new Error('empty');
-              })
-              .catch(() => {
-                // Last resort: use direct YouTube thumbnail (already set)
-                updateItem({
-                  status: 'queued',
-                  eta: 'Ready to download',
-                  thumbnail: ytVideoId ? `https://i.ytimg.com/vi/${ytVideoId}/maxresdefault.jpg` : null,
-                  title: ytVideoId ? `YouTube Video (${ytVideoId})` : newItem.title,
-                });
-              });
-          } else {
-            finishWithDefaults();
-          }
-        });
     }
   };
 
@@ -355,57 +227,10 @@ export default function App() {
     if (item.status === 'active' || item.status === 'downloading') {
       if (window.electronAPI?.pauseItem) {
         window.electronAPI.pauseItem(id);
-      } else {
-        setQueue((prev) =>
-          prev.map((i) => (i.id === id ? { ...i, status: 'paused', speed: '', eta: 'Paused' } : i))
-        );
       }
     } else {
       if (window.electronAPI?.resumeItem) {
         window.electronAPI.resumeItem(id);
-      } else {
-        // Browser Web Mode: trigger real web download resolver
-        const targetUrl = item.url;
-        let resolverUrl = '';
-        if (item.platform === 'youtube' || targetUrl.includes('youtu')) {
-          const videoId = (targetUrl.match(/(?:v=|\/|youtu\.be\/)([0-9A-Za-z_-]{11})/) || [])[1];
-          resolverUrl = item.config?.format === 'audio_only'
-            ? `https://www.y2mate.com/youtube-mp3/${videoId || ''}`
-            : `https://www.y2mate.com/youtube/${videoId || ''}`;
-        } else if (item.platform === 'instagram' || targetUrl.includes('instagram.com')) {
-          resolverUrl = 'https://fastdl.app/';
-        } else if (item.platform === 'tiktok' || targetUrl.includes('tiktok.com')) {
-          resolverUrl = 'https://snaptik.app/';
-        } else if (item.platform === 'pinterest' || targetUrl.includes('pinterest.com')) {
-          resolverUrl = 'https://pinterestvideodownloader.com/';
-        } else {
-          resolverUrl = `https://ssyoutube.com/watch?url=${encodeURIComponent(targetUrl)}`;
-        }
-
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(targetUrl).catch(() => {});
-        }
-
-        setQueue((prev) =>
-          prev.map((i) =>
-            i.id === id
-              ? { ...i, status: 'active', speed: '24.5 MB/s', eta: 'Opening download portal...', progress: 50 }
-              : i
-          )
-        );
-
-        setTimeout(() => {
-          setQueue((prev) =>
-            prev.map((i) =>
-              i.id === id
-                ? { ...i, status: 'completed', speed: '', eta: 'Direct Download Ready', progress: 100 }
-                : i
-            )
-          );
-          if (resolverUrl) {
-            window.open(resolverUrl, '_blank', 'noopener,noreferrer');
-          }
-        }, 1000);
       }
     }
   };
@@ -414,8 +239,6 @@ export default function App() {
   const handleRemove = (id) => {
     if (window.electronAPI?.removeItem) {
       window.electronAPI.removeItem(id);
-    } else {
-      setQueue((prev) => prev.filter((item) => item.id !== id));
     }
   };
 
@@ -423,16 +246,6 @@ export default function App() {
   const handleUpdateConfig = (id, newConfig) => {
     if (window.electronAPI?.updateItemConfig) {
       window.electronAPI.updateItemConfig(id, newConfig);
-    } else {
-      setQueue((prev) =>
-        prev.map((item) => {
-          if (item.id !== id) return item;
-          return {
-            ...item,
-            config: { ...item.config, ...newConfig },
-          };
-        })
-      );
     }
   };
 
@@ -440,50 +253,24 @@ export default function App() {
   const handleClearCompleted = () => {
     if (window.electronAPI?.clearCompleted) {
       window.electronAPI.clearCompleted();
-    } else {
-      setQueue((prev) => prev.filter((item) => item.status !== 'completed'));
     }
   };
 
   const handlePauseAll = () => {
     if (window.electronAPI?.pauseAll) {
       window.electronAPI.pauseAll();
-    } else {
-      setQueue((prev) =>
-        prev.map((item) =>
-          item.status === 'active' || item.status === 'downloading'
-            ? { ...item, status: 'paused', speed: '', eta: 'Paused' }
-            : item
-        )
-      );
     }
   };
 
   const handleResumeAll = () => {
     if (window.electronAPI?.resumeAll) {
       window.electronAPI.resumeAll();
-    } else {
-      setQueue((prev) =>
-        prev.map((item) =>
-          item.status === 'paused' || item.status === 'queued'
-            ? { ...item, status: 'active', speed: '14.0 MB/s', eta: 'Resuming...' }
-            : item
-        )
-      );
     }
   };
 
   const handleStartAll = () => {
     if (window.electronAPI?.startAll) {
       window.electronAPI.startAll();
-    } else {
-      setQueue((prev) =>
-        prev.map((item) =>
-          item.status === 'queued'
-            ? { ...item, status: 'active', speed: '12.0 MB/s', eta: 'Starting...' }
-            : item
-        )
-      );
     }
   };
 
@@ -504,24 +291,6 @@ export default function App() {
     }
   };
 
-  const handleConnectInstagram = async () => {
-    if (window.electronAPI?.connectInstagram) {
-      const res = await window.electronAPI.connectInstagram();
-      if (res && res.connected) {
-        setInstagramStatus(res);
-        window.electronAPI.getQueueItems?.().then((items) => {
-          if (items) setQueue(items);
-        });
-      }
-    }
-  };
-
-  const handleLogoutInstagram = async () => {
-    if (window.electronAPI?.logoutInstagram) {
-      await window.electronAPI.logoutInstagram();
-      setInstagramStatus({ connected: false, username: null });
-    }
-  };
 
   const handleRefreshItemMetadata = async (id) => {
     if (window.electronAPI?.refreshItemMetadata) {
@@ -538,9 +307,6 @@ export default function App() {
         activeTab={activeTab} 
         onTabChange={setActiveTab} 
         isEngineReady={isEngineReady} 
-        instagramStatus={instagramStatus}
-        onConnectInstagram={handleConnectInstagram}
-        onLogoutInstagram={handleLogoutInstagram}
       />
 
       {/* Main Container */}
@@ -569,8 +335,6 @@ export default function App() {
                 onResumeAll={handleResumeAll}
                 onStartAll={handleStartAll}
                 onAddSample={handleAddSample}
-                instagramStatus={instagramStatus}
-                onConnectInstagram={handleConnectInstagram}
                 onRefreshMetadata={handleRefreshItemMetadata}
               />
             </>
@@ -592,8 +356,6 @@ export default function App() {
                 onResumeAll={handleResumeAll}
                 onStartAll={handleStartAll}
                 onAddSample={handleAddSample}
-                instagramStatus={instagramStatus}
-                onConnectInstagram={handleConnectInstagram}
                 onRefreshMetadata={handleRefreshItemMetadata}
               />
             </div>

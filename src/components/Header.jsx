@@ -5,9 +5,6 @@ export default function Header({
   activeTab, 
   onTabChange, 
   isEngineReady,
-  instagramStatus,
-  onConnectInstagram,
-  onLogoutInstagram,
 }) {
   const isMac = window.electronAPI?.platform === 'darwin';
 
@@ -42,7 +39,7 @@ export default function Header({
               Universal Media Downloader
             </span>
             <span className="font-mono text-[11px] text-on-surface-variant bg-surface-container-high px-space-xs py-[1px] rounded border border-[#3f3f46]/50">
-              v2.4 Pro
+              v2.5 Pro
             </span>
           </div>
         </div>
@@ -72,33 +69,8 @@ export default function Header({
           </nav>
         </div>
 
-        {/* Right: Engine Status Pill, Instagram Auth & Windows controls */}
+        {/* Right: Engine Status Pill & Windows controls */}
         <div className="flex items-center gap-space-md app-no-drag">
-          {/* Instagram Session Indicator */}
-          {instagramStatus?.connected ? (
-            <div className="flex items-center gap-1.5 px-space-sm py-[3px] rounded-full bg-pink-500/10 border border-pink-500/30 text-pink-300 text-[11px] font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-pink-400" />
-              <span>IG Connected</span>
-              <button
-                onClick={onLogoutInstagram}
-                title="Disconnect Instagram Session"
-                className="ml-1 text-pink-400/60 hover:text-pink-300 text-[11px] font-bold"
-              >
-                ×
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={onConnectInstagram}
-              className="flex items-center gap-1.5 px-space-sm py-[3px] rounded-full bg-surface-container hover:bg-surface-container-high border border-pink-500/30 text-pink-300 hover:text-pink-200 text-[11px] font-medium transition"
-              title="Connect Instagram account to download carousels and private feed posts"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-pulse" />
-              <span>Connect IG</span>
-            </button>
-          )}
-
           <div className="flex items-center gap-space-xs px-space-sm py-[3px] rounded-full bg-surface-container border border-[#27272a]">
             <span
               className={`w-2 h-2 rounded-full inline-block ${

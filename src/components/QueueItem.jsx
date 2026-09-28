@@ -39,8 +39,6 @@ export default function QueueItem({
   onTogglePlayPause, 
   onRemove, 
   onUpdateConfig,
-  instagramStatus,
-  onConnectInstagram,
   onRefreshMetadata
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -211,17 +209,7 @@ export default function QueueItem({
                 </button>
               )}
 
-              {item.requiresInstagramAuth && (
-                <button
-                  type="button"
-                  onClick={() => onConnectInstagram && onConnectInstagram()}
-                  className="font-mono text-[11px] text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 px-space-sm py-[2px] rounded-full border border-pink-500/30 flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Connect Instagram to extract carousel & high-res media"
-                >
-                  <AlertCircle className="w-3 h-3 text-pink-400" />
-                  <span>IG Login Needed</span>
-                </button>
-              )}
+
 
               {isYouTube && item.tags?.length > 0 && (
                 <span className="font-mono text-[11px] text-on-surface-variant bg-surface-container-high px-space-sm py-[2px] rounded-full border border-[#3f3f46]/40">
@@ -343,33 +331,7 @@ export default function QueueItem({
         </div>
       </div>
       
-      {/* Instagram Auth Banner */}
-      {item.requiresInstagramAuth && (
-        <div className="mx-space-lg mb-space-md p-2.5 rounded-lg bg-pink-950/30 border border-pink-500/30 flex items-center justify-between flex-wrap gap-2 text-[12px]">
-          <div className="flex items-center gap-2 text-pink-300">
-            <AlertCircle className="w-4 h-4 shrink-0 text-pink-400" />
-            <span>
-              Instagram session required to extract and download this carousel / post.
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onConnectInstagram && onConnectInstagram()}
-              className="px-3 py-1 rounded bg-pink-600 hover:bg-pink-700 text-white font-medium text-[11px] transition-all shadow-sm shrink-0"
-            >
-              Connect Instagram
-            </button>
-            <button
-              type="button"
-              onClick={() => onRefreshMetadata && onRefreshMetadata(item.id)}
-              className="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface text-[11px] border border-[#3f3f46]/40 transition-colors shrink-0"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* Expanded Configuration Inspector Panel */}
       {isExpanded && (
@@ -377,8 +339,6 @@ export default function QueueItem({
           item={item} 
           onUpdateConfig={onUpdateConfig} 
           onStartDownload={onTogglePlayPause}
-          instagramStatus={instagramStatus}
-          onConnectInstagram={onConnectInstagram}
           onRefreshMetadata={onRefreshMetadata}
         />
       )}

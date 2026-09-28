@@ -40,8 +40,6 @@ export default function InspectorPanel({
   item, 
   onUpdateConfig, 
   onStartDownload,
-  instagramStatus,
-  onConnectInstagram,
   onRefreshMetadata
 }) {
   const isYouTube = item.platform === 'youtube';
@@ -542,26 +540,7 @@ export default function InspectorPanel({
             </div>
           )}
 
-          {/* Banner if Instagram login is required */}
-          {item.platform === 'instagram' && item.requiresInstagramAuth && (
-            <div className="p-3 rounded-lg bg-pink-950/30 border border-pink-500/30 flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2 text-pink-300">
-                <Info className="w-4 h-4 text-pink-400 shrink-0" />
-                <span className="text-[12px] font-medium">
-                  Instagram session required to unlock full carousel and album slides.
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => onConnectInstagram && onConnectInstagram()}
-                  className="px-3 py-1 rounded text-[11px] font-semibold bg-pink-600 hover:bg-pink-700 text-white transition-all shadow-sm"
-                >
-                  Connect Instagram
-                </button>
-              </div>
-            </div>
-          )}
+
         </div>
       )}
 
@@ -703,27 +682,20 @@ export default function InspectorPanel({
               ))}
             </div>
           ) : item.platform === 'instagram' ? (
-            /* Instagram empty carousel / auth prompt */
+            /* Instagram empty carousel — suggest retry */
             <div className="flex flex-col items-center justify-center p-8 text-center gap-3 bg-surface-container-lowest rounded-lg border border-[#27272a]">
               <div className="w-12 h-12 rounded-full bg-pink-500/10 flex items-center justify-center border border-pink-500/25">
                 <ImageIcon className="w-6 h-6 text-pink-400" />
               </div>
               <div className="flex flex-col gap-1 max-w-sm">
                 <h4 className="text-[13px] font-semibold text-on-surface">
-                  {item.requiresInstagramAuth ? 'Instagram Authentication Required' : 'Multi-Item Carousel / Post'}
+                  Multi-Item Carousel / Post
                 </h4>
                 <p className="text-[12px] text-on-surface-variant leading-relaxed">
-                  Instagram restricts third-party scrapers from accessing carousel slides and post albums without being logged in. Connect your Instagram session to load and download all images.
+                  Carousel data is loading or could not be extracted automatically. Click "Retry" to attempt fetching again.
                 </p>
               </div>
               <div className="flex items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => onConnectInstagram && onConnectInstagram()}
-                  className="px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 text-white font-medium text-[12px] transition-all shadow-sm flex items-center gap-1.5"
-                >
-                  <span>Connect Instagram</span>
-                </button>
                 <button
                   type="button"
                   onClick={() => onRefreshMetadata && onRefreshMetadata(item.id)}

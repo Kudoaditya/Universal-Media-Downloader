@@ -20,8 +20,6 @@ export default function QueueLedger({
   onResumeAll,
   onStartAll,
   onAddSample,
-  instagramStatus,
-  onConnectInstagram,
   onRefreshMetadata
 }) {
 
@@ -105,8 +103,6 @@ export default function QueueLedger({
               onTogglePlayPause={onTogglePlayPause}
               onRemove={onRemove}
               onUpdateConfig={onUpdateConfig}
-              instagramStatus={instagramStatus}
-              onConnectInstagram={onConnectInstagram}
               onRefreshMetadata={onRefreshMetadata}
             />
           ))}

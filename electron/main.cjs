@@ -2,12 +2,10 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const BinaryManager = require('./binaryManager.cjs');
 const QueueManager = require('./queueManager.cjs');
-const InstagramAuth = require('./instagramAuth.cjs');
 
 let mainWindow = null;
 let binaryManager = null;
 let queueManager = null;
-let instagramAuth = null;
 
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -109,8 +107,7 @@ async function initBinaries() {
 // App lifecycle
 app.whenReady().then(() => {
   binaryManager = new BinaryManager(app.getPath('userData'));
-  instagramAuth = new InstagramAuth(app.getPath('userData'));
-  queueManager = new QueueManager(binaryManager, () => mainWindow, instagramAuth);
+  queueManager = new QueueManager(binaryManager, () => mainWindow);
   setupIpcHandlers();
   createWindow();
 
@@ -236,27 +233,6 @@ function setupIpcHandlers() {
   ipcMain.handle('queue:refresh-metadata', async (_event, taskId) => {
     if (!queueManager) return false;
     return await queueManager.refreshMetadata(taskId);
-  });
-
-  // Instagram Session Management IPC
-  ipcMain.handle('instagram:get-status', async () => {
-    if (!instagramAuth) return { connected: false, username: null };
-    return await instagramAuth.checkStatus();
-  });
-
-  ipcMain.handle('instagram:connect', async () => {
-    if (!instagramAuth) return { success: false, error: 'InstagramAuth not ready' };
-    const res = await instagramAuth.openLoginWindow(mainWindow);
-    if (res && res.connected && queueManager) {
-      // Re-trigger metadata on all Instagram tasks that failed with auth error
-      queueManager.refreshAllInstagramTasks();
-    }
-    return res;
-  });
-
-  ipcMain.handle('instagram:logout', async () => {
-    if (!instagramAuth) return { success: false };
-    return await instagramAuth.logout();
   });
 
   // Window Controls

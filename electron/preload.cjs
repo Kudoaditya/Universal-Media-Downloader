@@ -34,16 +34,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   downloadAllCarousel: (taskId) => ipcRenderer.invoke('queue:download-all-carousel', taskId),
   refreshItemMetadata: (taskId) => ipcRenderer.invoke('queue:refresh-metadata', taskId),
 
-  // Instagram Session Management
-  getInstagramStatus: () => ipcRenderer.invoke('instagram:get-status'),
-  connectInstagram: () => ipcRenderer.invoke('instagram:connect'),
-  logoutInstagram: () => ipcRenderer.invoke('instagram:logout'),
-  onInstagramStatusChanged: (callback) => {
-    const sub = (_event, val) => callback(val);
-    ipcRenderer.on('instagram:status-changed', sub);
-    return () => ipcRenderer.removeListener('instagram:status-changed', sub);
-  },
-
   // Binary Event Listeners
   onBinaryProgress: (callback) => {
     const sub = (_event, val) => callback(val);

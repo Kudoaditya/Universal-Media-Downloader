@@ -5,10 +5,9 @@ const https = require('https');
 const http = require('http');
 
 class QueueManager {
-  constructor(binaryManager, getMainWindow, instagramAuth = null) {
+  constructor(binaryManager, getMainWindow) {
     this.binaryManager = binaryManager;
     this.getMainWindow = getMainWindow;
-    this.instagramAuth = instagramAuth;
     this.queue = [];
     this.activeProcesses = new Map(); // taskId -> childProcess
     this.maxConcurrent = 2;
@@ -48,7 +47,6 @@ class QueueManager {
       tags: item.tags,
       uploader: item.uploader,
       carousel: item.carousel || [],
-      requiresInstagramAuth: item.requiresInstagramAuth || false,
     }));
   }
 
@@ -241,6 +239,97 @@ class QueueManager {
     });
   }
 
+  /**
+   * Fetch Instagram metadata via third-party API (fastdl.app) — no login required.
+   * Falls back to scraping og: meta tags from the public Instagram page.
+   */
+  async fetchInstagramViaThirdParty(task) {
+    const shortcodeMatch = task.url.match(/\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
+    const shortcode = shortcodeMatch ? shortcodeMatch[1] : null;
+    if (!shortcode) return;
+
+    // Strategy: Use fastdl.app API to extract carousel/reel media without authentication
+    return new Promise((resolve) => {
+      const postData = `url=${encodeURIComponent(task.url)}`;
+      const reqOptions = {
+        hostname: 'fastdl.app',
+        path: '/api/convert',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData),
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Origin': 'https://fastdl.app',
+          'Referer': 'https://fastdl.app/',
+        },
+      };
+
+      const req = https.request(reqOptions, (res) => {
+        let body = '';
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            if (data && (data.url_list || data.images || data.video)) {
+              const mediaItems = data.url_list || data.images || [];
+              const videoUrl = data.video || null;
+
+              if (data.title && (!task.title || task.title.startsWith('Media Ingestion:') || task.title.startsWith('Instagram Post ['))) {
+                task.title = data.title;
+              }
+              if (data.description) {
+                task.description = data.description;
+              }
+              if (data.thumbnail) {
+                task.thumbnail = data.thumbnail;
+              }
+
+              // Build carousel from extracted URLs
+              if (Array.isArray(mediaItems) && mediaItems.length > 0) {
+                task.carousel = mediaItems.map((mediaUrl, i) => {
+                  const isVideo = /\.mp4/i.test(mediaUrl) || /video/i.test(mediaUrl);
+                  return {
+                    id: String(i + 1),
+                    url: mediaUrl,
+                    thumbnail: data.thumbnail || mediaUrl,
+                    isVideo,
+                    title: `Slide ${i + 1}`,
+                    ext: isVideo ? 'mp4' : 'jpg',
+                  };
+                });
+                task.durationText = `${task.carousel.length} Slides`;
+                if (!task.thumbnail && task.carousel[0]) {
+                  task.thumbnail = task.carousel[0].thumbnail;
+                }
+              } else if (videoUrl) {
+                task.carousel = [{
+                  id: '1',
+                  url: videoUrl,
+                  thumbnail: data.thumbnail || videoUrl,
+                  isVideo: true,
+                  title: 'Reel Video',
+                  ext: 'mp4',
+                }];
+                task.durationText = 'Video';
+              }
+              this.emitQueueUpdate();
+            }
+          } catch (_) {}
+          resolve();
+        });
+      });
+
+      req.on('error', () => resolve());
+      req.setTimeout(15000, () => {
+        req.destroy();
+        resolve();
+      });
+      req.write(postData);
+      req.end();
+    });
+  }
+
   async fetchInstagramMetadata(task) {
     return new Promise((resolve) => {
       try {
@@ -296,8 +385,10 @@ class QueueManager {
       await this.fetchPinterestMetadata(task);
     }
 
-    // If Instagram post or reel, run fast mobile scraper first
+    // If Instagram post or reel, fetch via third-party API first (no login needed)
     if (task.platform === 'instagram' || task.url.includes('instagram.com') || task.url.includes('instagr.am')) {
+      await this.fetchInstagramViaThirdParty(task);
+      // Also try basic og: meta scraping for title/description enrichment
       await this.fetchInstagramMetadata(task);
     }
 
@@ -311,14 +402,10 @@ class QueueManager {
         '--no-warnings',
       ];
 
-      // Pass Instagram session cookies if available
+      // Instagram: enable playlist mode but NO cookies needed
       const isInstagram = task.platform === 'instagram' || task.url.includes('instagram.com') || task.url.includes('instagr.am');
       if (isInstagram) {
         args.push('--yes-playlist');
-        const igCookies = this.instagramAuth ? this.instagramAuth.getCookiesPath() : null;
-        if (igCookies) {
-          args.push('--cookies', igCookies);
-        }
       }
 
       args.push(task.url);
@@ -418,7 +505,6 @@ class QueueManager {
                 if (validEntries.length > 1) {
                   task.carousel = validEntries;
                   task.durationText = `${validEntries.length} Slides`;
-                  task.requiresInstagramAuth = false;
                   task.error = null;
                 }
               }
@@ -426,9 +512,10 @@ class QueueManager {
             this.emitQueueUpdate();
           } catch (_) {}
         } else {
-          if (task.platform === 'instagram' && (stderr.includes('empty media response') || stderr.includes('API is not granting access') || stderr.includes('HTTP Error 400') || stderr.includes('login'))) {
-            task.requiresInstagramAuth = true;
-            task.error = 'Instagram login required to view all carousel slides. Click "Connect Instagram" above.';
+          // yt-dlp failed — for Instagram, the third-party API already fetched carousel data above,
+          // so we only set an error if we truly have nothing
+          if (task.platform === 'instagram' && (!task.carousel || task.carousel.length === 0)) {
+            task.error = 'Could not extract all media. Try refreshing metadata or paste a different URL format.';
             this.emitQueueUpdate();
           }
         }
@@ -476,10 +563,6 @@ class QueueManager {
     args.push('--newline');
     if (task.platform === 'instagram') {
       args.push('--yes-playlist');
-      const igCookies = this.instagramAuth ? this.instagramAuth.getCookiesPath() : null;
-      if (igCookies) {
-        args.push('--cookies', igCookies);
-      }
     } else {
       args.push('--no-playlist');
     }
@@ -597,19 +680,13 @@ class QueueManager {
         task.speed = '';
         task.eta = 'Finished';
         task.error = null;
-        task.requiresInstagramAuth = false;
         this.emitQueueUpdate();
         this.emit('queue:item-completed', { id: task.id, title: task.title });
       } else {
         task.status = 'error';
         task.speed = '';
         task.eta = 'Failed';
-        if (task.platform === 'instagram' && (childStderr.includes('empty media response') || childStderr.includes('API is not granting access') || childStderr.includes('HTTP Error 400') || childStderr.includes('login'))) {
-          task.requiresInstagramAuth = true;
-          task.error = 'Instagram login required to download this post. Click "Connect Instagram" above.';
-        } else {
-          task.error = `Download failed with exit code ${code}`;
-        }
+        task.error = `Download failed with exit code ${code}`;
         this.emitQueueUpdate();
         this.emit('queue:item-error', { id: task.id, error: task.error });
       }
@@ -899,18 +976,9 @@ class QueueManager {
     const task = this.queue.find(item => item.id === taskId);
     if (!task) return false;
     task.error = null;
-    task.requiresInstagramAuth = false;
     this.emitQueueUpdate();
     await this.fetchDeepMetadata(task);
     return true;
-  }
-
-  refreshAllInstagramTasks() {
-    for (const task of this.queue) {
-      if (task.platform === 'instagram' && (task.requiresInstagramAuth || task.status === 'error')) {
-        this.refreshMetadata(task.id);
-      }
-    }
   }
 
 
